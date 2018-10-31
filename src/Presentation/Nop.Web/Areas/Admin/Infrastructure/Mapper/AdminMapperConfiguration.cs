@@ -549,13 +549,27 @@ namespace Nop.Web.Areas.Admin.Infrastructure.Mapper
                 .ForMember(model => model.ProductId, options => options.Ignore())
                 .ForMember(model => model.ProductName, options => options.Ignore());
 
-
             CreateMap<ProductSpecificationAttribute, ProductSpecificationAttributeModel>()
                 .ForMember(model => model.AttributeTypeName, options => options.Ignore())
                 .ForMember(model => model.ValueRaw, options => options.Ignore())
                 .ForMember(model => model.AttributeId, options => options.Ignore())
                 .ForMember(model => model.AttributeName, options => options.Ignore())
                 .ForMember(model => model.SpecificationAttributeOptionId, options => options.Ignore());
+
+            CreateMap<ProductSpecificationAttribute, AddOrEditSpecificationAttributeModel>()
+                .ForMember(model => model.SpecificationId, options => options.MapFrom(src => src.Id))
+                .ForMember(model => model.AttributeTypeName, options => options.Ignore())
+                .ForMember(model => model.AttributeId, options => options.Ignore())
+                .ForMember(model => model.AttributeName, options => options.Ignore())
+                .ForMember(model => model.ValueRaw, options => options.Ignore())
+                .ForMember(model => model.Value, options => options.Ignore())
+                .ForMember(model => model.AvailableOptions, options => options.Ignore());
+
+            CreateMap<AddOrEditSpecificationAttributeModel, ProductSpecificationAttribute>()
+                .ForMember(model => model.CustomValue, options => options.MapFrom(src => src.ValueRaw))
+                .ForMember(model => model.Product, options => options.Ignore())
+                .ForMember(model => model.SpecificationAttributeOption, options => options.Ignore())
+                .ForMember(model => model.AttributeType, options => options.Ignore());
 
             CreateMap<ProductTag, ProductTagModel>()
                .ForMember(model => model.ProductCount, options => options.Ignore());

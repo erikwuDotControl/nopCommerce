@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
 using Nop.Core;
+using Nop.Core.Caching;
 using Nop.Core.Domain.Catalog;
 using Nop.Core.Domain.Discounts;
 using Nop.Core.Domain.Media;
@@ -1718,41 +1719,48 @@ namespace Nop.Web.Areas.Admin.Controllers
 
         #region Product specification attributes
 
-        public virtual IActionResult ProductSpecificationAttributeAdd(int attributeTypeId, int specificationAttributeOptionId,
-            string customValue, bool allowFiltering, bool showOnProductPage, int displayOrder, int productId)
+        [HttpPost, ParameterBasedOnFormName("save-continue", "continueEditing")]
+        public virtual IActionResult ProductSpecificationAttributeAdd(AddOrEditSpecificationAttributeModel model, bool continueEditing)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageProducts))
                 return AccessDeniedView();
 
+            var product = _productService.GetProductById(model.ProductId);
+            if (product == null)
+            {
+                _notificationService.ErrorNotification("No product found with the specified id");
+                return RedirectToAction("List");
+            }
+
             //a vendor should have access only to his products
             if (_workContext.CurrentVendor != null)
             {
-                var product = _productService.GetProductById(productId);
-                if (product != null && product.VendorId != _workContext.CurrentVendor.Id)
+                if (product.VendorId != _workContext.CurrentVendor.Id)
                     return RedirectToAction("List");
             }
 
             //we allow filtering only for "Option" attribute type
-            if (attributeTypeId != (int)SpecificationAttributeType.Option)
-                allowFiltering = false;
+            if (model.AttributeTypeId != (int)SpecificationAttributeType.Option)
+                model.AllowFiltering = false;
 
             //we don't allow CustomValue for "Option" attribute type
-            if (attributeTypeId == (int)SpecificationAttributeType.Option)
-                customValue = null;
+            if (model.AttributeTypeId == (int)SpecificationAttributeType.Option)
+                model.ValueRaw = null;
 
-            var psa = new ProductSpecificationAttribute
-            {
-                AttributeTypeId = attributeTypeId,
-                SpecificationAttributeOptionId = specificationAttributeOptionId,
-                ProductId = productId,
-                CustomValue = customValue,
-                AllowFiltering = allowFiltering,
-                ShowOnProductPage = showOnProductPage,
-                DisplayOrder = displayOrder
-            };
+            //store raw html if field allow this
+            if (model.AttributeTypeId == (int)SpecificationAttributeType.CustomText
+                || model.AttributeTypeId == (int)SpecificationAttributeType.Hyperlink)
+                model.ValueRaw = model.Value;
+
+            var psa = model.ToEntity<ProductSpecificationAttribute>();
             _specificationAttributeService.InsertProductSpecificationAttribute(psa);
 
-            return Json(new { Result = true });
+            if (continueEditing)
+                return RedirectToAction("ProductSpecAttributeAddOrEdit",
+                    new { productId = psa.ProductId, specificationId = psa.Id });
+
+            SaveSelectedTabName("tab-specification-attributes");
+            return RedirectToAction("Edit", new { id = model.ProductId });
         }
 
         [HttpPost]
@@ -1775,16 +1783,22 @@ namespace Nop.Web.Areas.Admin.Controllers
             return Json(model);
         }
 
-        [HttpPost]
-        public virtual IActionResult ProductSpecAttrUpdate(ProductSpecificationAttributeModel model)
+        [HttpPost, ParameterBasedOnFormName("save-continue", "continueEditing")]
+        public virtual IActionResult ProductSpecAttrUpdate(AddOrEditSpecificationAttributeModel model, bool continueEditing)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageProducts))
                 return AccessDeniedView();
 
             //try to get a product specification attribute with the specified id
-            var psa = _specificationAttributeService.GetProductSpecificationAttributeById(model.Id);
+            var psa = _specificationAttributeService.GetProductSpecificationAttributeById(model.SpecificationId);
             if (psa == null)
-                return Content("No product specification attribute found with the specified id");
+            {
+                SaveSelectedTabName("tab-specification-attributes");
+
+                _notificationService.ErrorNotification("No product specification attribute found with the specified id");
+                return RedirectToAction("Edit", new { id = model.ProductId });
+
+            }
 
             var productId = psa.Product.Id;
 
@@ -1793,32 +1807,88 @@ namespace Nop.Web.Areas.Admin.Controllers
             {
                 var product = _productService.GetProductById(productId);
                 if (product != null && product.VendorId != _workContext.CurrentVendor.Id)
-                    return Content("This is not your product");
+                {
+                    _notificationService.ErrorNotification("This is not your product");
+                    return RedirectToAction("List");
+
+                }
             }
 
             //we allow filtering and change option only for "Option" attribute type
-            if (model.AttributeTypeId == (int)SpecificationAttributeType.Option)
+            switch (model.AttributeTypeId)
             {
-                psa.AllowFiltering = model.AllowFiltering;
-                psa.SpecificationAttributeOptionId = model.SpecificationAttributeOptionId;
+                case (int)SpecificationAttributeType.Option:
+                    psa.AllowFiltering = model.AllowFiltering;
+                    psa.SpecificationAttributeOptionId = model.SpecificationAttributeOptionId;
+                    break;
+                case (int)SpecificationAttributeType.CustomHtmlText:
+                    psa.CustomValue = model.ValueRaw;
+                    break;
+                default:
+                    psa.CustomValue = model.Value;
+                    break;
             }
 
             psa.ShowOnProductPage = model.ShowOnProductPage;
             psa.DisplayOrder = model.DisplayOrder;
             _specificationAttributeService.UpdateProductSpecificationAttribute(psa);
 
-            return new NullJsonResult();
+            if (continueEditing)
+            {
+                return RedirectToAction("ProductSpecAttributeAddOrEdit",
+                    new { productId = productId, specificationId = model.SpecificationId });
+            }
+
+            SaveSelectedTabName("tab-specification-attributes");
+            return RedirectToAction("Edit", new { id = productId });
+        }
+
+        public virtual IActionResult ProductSpecAttributeAddOrEdit(int productId, int? specificationId)
+        {
+            if (!_permissionService.Authorize(StandardPermissionProvider.ManageProducts))
+                return AccessDeniedView();
+
+            if (_productService.GetProductById(productId) == null)
+            {
+                _notificationService.ErrorNotification("No product found with the specified id");
+                return RedirectToAction("List");
+            }
+
+            var model = new AddOrEditSpecificationAttributeModel();
+            if (!specificationId.HasValue)
+                return View(model);
+            
+            //try to get a product specification attribute with the specified id
+            try
+            {
+                model = _productModelFactory.PrepareAddOrEditSpecificationAttributeModel(specificationId.Value);
+            }
+            catch (Exception ex)
+            {
+                _notificationService.ErrorNotification(ex);
+
+                SaveSelectedTabName("tab-specification-attributes");
+                return RedirectToAction("Edit", new { id = productId });
+            }
+
+            return View(model);
         }
 
         [HttpPost]
-        public virtual IActionResult ProductSpecAttrDelete(int id)
+        public virtual IActionResult ProductSpecAttrDelete(AddOrEditSpecificationAttributeModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageProducts))
                 return AccessDeniedView();
 
             //try to get a product specification attribute with the specified id
-            var psa = _specificationAttributeService.GetProductSpecificationAttributeById(id)
-                ?? throw new ArgumentException("No specification attribute found with the specified id");
+            var psa = _specificationAttributeService.GetProductSpecificationAttributeById(model.SpecificationId);
+            if (psa == null)
+            {
+                SaveSelectedTabName("tab-specification-attributes");
+
+                _notificationService.ErrorNotification("No product specification attribute found with the specified id");
+                return RedirectToAction("Edit", new { id = model.ProductId });
+            }
 
             var productId = psa.ProductId;
 
@@ -1827,12 +1897,16 @@ namespace Nop.Web.Areas.Admin.Controllers
             {
                 var product = _productService.GetProductById(productId);
                 if (product != null && product.VendorId != _workContext.CurrentVendor.Id)
-                    return Content("This is not your product");
+                {
+                    _notificationService.ErrorNotification("This is not your product");
+                    return RedirectToAction("List", new { id = model.ProductId });
+                }
             }
 
             _specificationAttributeService.DeleteProductSpecificationAttribute(psa);
 
-            return new NullJsonResult();
+            SaveSelectedTabName("tab-specification-attributes");
+            return RedirectToAction("Edit", new { id = productId });
         }
 
         #endregion
