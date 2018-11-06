@@ -70,7 +70,12 @@ namespace Nop.Plugin.Payments.Square.Services
             return new Configuration
             {
                 AccessToken = _squarePaymentSettings.AccessToken,
-                UserAgent = SquarePaymentDefaults.UserAgent
+                UserAgent = SquarePaymentDefaults.UserAgent,
+                //https://docs.connect.squareup.com/api/connect/v2#requestandresponseheaders
+                DefaultHeader = new Dictionary<string, string>
+                {
+                    {"Authorization", $"Bearer {_squarePaymentSettings.AccessToken}" }
+                }
             };
         }
 
