@@ -230,6 +230,12 @@ set @resources='
   <LocaleResource Name="Admin.Catalog.Products.Import.StoresDontExist">
     <Value>Stores with the following names and/or IDs don''t exist: {0}</Value>
   </LocaleResource> 
+  <LocaleResource Name="Admin.ContentManagement.Blog.BlogPosts.Fields.IncludeInSitemap">
+    <Value>Include in sitemap</Value>
+  </LocaleResource>
+  <LocaleResource Name="Admin.ContentManagement.Blog.BlogPosts.Fields.IncludeInSitemap.Hint">
+    <Value>Check to include this blog post in the sitemap.</Value>
+  </LocaleResource>
 </Language>
 '
 
@@ -316,6 +322,24 @@ GO
 
 ALTER TABLE [Topic] ALTER COLUMN [Title] nvarchar(max) NOT NULL
 GO
+
+-- #3236
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id=object_id('[BlogPost]') and NAME='IncludeInSitemap')
+BEGIN
+	ALTER TABLE [BlogPost]
+	ADD [IncludeInSitemap] bit NULL
+END
+GO
+
+UPDATE [BlogPost]
+SET [IncludeInSitemap] = 0
+WHERE [IncludeInSitemap] IS NULL
+GO
+
+ALTER TABLE [BlogPost]
+ALTER COLUMN [IncludeInSitemap] bit NOT NULL
+GO
+
 
 -- update the "ProductLoadAllPaged" stored procedure
 ALTER PROCEDURE [ProductLoadAllPaged]
@@ -1013,6 +1037,35 @@ IF NOT EXISTS (SELECT 1 FROM [Setting] WHERE [Name] = N'catalogsettings.exportim
 BEGIN
     INSERT [Setting] ([Name], [Value], [StoreId])
     VALUES (N'catalogsettings.exportimportproductuselimitedtostores', N'False', 0)
+END
+GO
+
+--new setting (#3236)
+IF NOT EXISTS (SELECT 1 FROM [Setting] WHERE [Name] = N'commonsettings.sitemapxmlincludeproducts')
+BEGIN
+    INSERT [Setting] ([Name], [Value], [StoreId])
+    VALUES (N'commonsettings.sitemapxmlincludeproducts', N'True', 0)
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM [Setting] WHERE [Name] = N'commonsettings.sitemapxmlincludecategories')
+BEGIN
+    INSERT [Setting] ([Name], [Value], [StoreId])
+    VALUES (N'commonsettings.sitemapxmlincludecategories', N'True', 0)
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM [Setting] WHERE [Name] = N'commonsettings.sitemapxmlincludemanufacturers')
+BEGIN
+    INSERT [Setting] ([Name], [Value], [StoreId])
+    VALUES (N'commonsettings.sitemapxmlincludemanufacturers', N'True', 0)
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM [Setting] WHERE [Name] = N'commonsettings.sitemapxmlincludeproducttags')
+BEGIN
+    INSERT [Setting] ([Name], [Value], [StoreId])
+    VALUES (N'commonsettings.sitemapxmlincludeproducttags', N'True', 0)
 END
 GO
 

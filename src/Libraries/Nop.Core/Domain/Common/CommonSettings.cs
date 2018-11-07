@@ -45,9 +45,19 @@ namespace Nop.Core.Domain.Common
         public bool SitemapIncludeCategories { get; set; }
 
         /// <summary>
+        /// Gets or sets a value indicating whether to include categories to sitemap.xml
+        /// </summary>
+        public bool SitemapXmlIncludeCategories { get; set; }
+
+        /// <summary>
         /// Gets or sets a value indicating whether to include manufacturers to sitemap
         /// </summary>
         public bool SitemapIncludeManufacturers { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether to include manufacturers to sitemap.xml
+        /// </summary>
+        public bool SitemapXmlIncludeManufacturers { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether to include products to sitemap
@@ -55,9 +65,19 @@ namespace Nop.Core.Domain.Common
         public bool SitemapIncludeProducts { get; set; }
 
         /// <summary>
+        /// Gets or sets a value indicating whether to include products to sitemap.xml
+        /// </summary>
+        public bool SitemapXmlIncludeProducts { get; set; }
+
+        /// <summary>
         /// Gets or sets a value indicating whether to include product tags to sitemap
         /// </summary>
         public bool SitemapIncludeProductTags { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether to include product tags to sitemap.xml
+        /// </summary>
+        public bool SitemapXmlIncludeProductTags { get; set; }
 
         /// <summary>
         /// A list of custom URLs to be added to sitemap.xml (include page names only)

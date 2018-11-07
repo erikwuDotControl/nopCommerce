@@ -17,6 +17,7 @@ using Nop.Core.Domain.Localization;
 using Nop.Core.Domain.News;
 using Nop.Core.Domain.Security;
 using Nop.Core.Domain.Seo;
+using Nop.Services.Blogs;
 using Nop.Services.Catalog;
 using Nop.Services.Localization;
 using Nop.Services.Topics;
@@ -34,6 +35,7 @@ namespace Nop.Services.Seo
         private readonly CommonSettings _commonSettings;
         private readonly ForumSettings _forumSettings;
         private readonly IActionContextAccessor _actionContextAccessor;
+        private readonly IBlogService _blogService;
         private readonly ICategoryService _categoryService;
         private readonly ILanguageService _languageService;
         private readonly IManufacturerService _manufacturerService;
@@ -57,6 +59,7 @@ namespace Nop.Services.Seo
             CommonSettings commonSettings,
             ForumSettings forumSettings,
             IActionContextAccessor actionContextAccessor,
+            IBlogService blogService,
             ICategoryService categoryService,
             ILanguageService languageService,
             IManufacturerService manufacturerService,
@@ -72,6 +75,7 @@ namespace Nop.Services.Seo
             SecuritySettings securitySettings)
         {
             this._blogSettings = blogSettings;
+            this._blogService = blogService;
             this._commonSettings = commonSettings;
             this._forumSettings = forumSettings;
             this._actionContextAccessor = actionContextAccessor;
@@ -207,20 +211,23 @@ namespace Nop.Services.Seo
             }
 
             //categories
-            if (_commonSettings.SitemapIncludeCategories)
+            if (_commonSettings.SitemapXmlIncludeCategories)
                 sitemapUrls.AddRange(GetCategoryUrls());
 
             //manufacturers
-            if (_commonSettings.SitemapIncludeManufacturers)
+            if (_commonSettings.SitemapXmlIncludeManufacturers)
                 sitemapUrls.AddRange(GetManufacturerUrls());
 
             //products
-            if (_commonSettings.SitemapIncludeProducts)
+            if (_commonSettings.SitemapXmlIncludeProducts)
                 sitemapUrls.AddRange(GetProductUrls());
 
             //product tags
-            if (_commonSettings.SitemapIncludeProductTags)
+            if (_commonSettings.SitemapXmlIncludeProductTags)
                 sitemapUrls.AddRange(GetProductTagUrls());
+
+            //blog posts
+            sitemapUrls.AddRange(GetBlogPostUrls());
 
             //topics
             sitemapUrls.AddRange(GetTopicUrls());
@@ -280,6 +287,17 @@ namespace Nop.Services.Seo
         {
             return _topicService.GetAllTopics(_storeContext.CurrentStore.Id).Where(t => t.IncludeInSitemap)
                 .Select(topic => GetLocalizedSitemapUrl("Topic", GetSeoRouteParams(topic)));
+        }
+
+        /// <summary>
+        /// Get blog post URLs for the sitemap
+        /// </summary>
+        /// <returns>Sitemap URLs</returns>
+        protected virtual IEnumerable<SitemapUrl> GetBlogPostUrls()
+        {
+            return _blogService.GetAllBlogPosts(_storeContext.CurrentStore.Id)
+                .Where(p => p.IncludeInSitemap)
+                .Select(post => GetLocalizedSitemapUrl("BlogPost", GetSeoRouteParams(post)));
         }
 
         /// <summary>
@@ -435,6 +453,9 @@ namespace Nop.Services.Seo
         /// <param name="sitemapUrl">Sitemap URL</param>
         protected virtual void WriteSitemapUrl(XmlTextWriter writer, SitemapUrl sitemapUrl)
         {
+            if (string.IsNullOrEmpty(sitemapUrl.Location))
+                return;
+
             writer.WriteStartElement("url");
 
             var loc = XmlHelper.XmlEncode(sitemapUrl.Location);
