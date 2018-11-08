@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Core;
 using Nop.Core.Caching;
 using Nop.Core.Data;
@@ -71,6 +72,18 @@ namespace Nop.Services.Catalog
                         select sa;
             var specificationAttributes = new PagedList<SpecificationAttribute>(query, pageIndex, pageSize);
             return specificationAttributes;
+        }
+
+        /// <summary>
+        /// Gets specification attributes that have options
+        /// </summary>
+        /// <returns></returns>
+        public virtual IList<SelectListItem> GetSpecificationAttributesWithOptions()
+        {
+            return GetSpecificationAttributes()
+                .Where(sa => sa.SpecificationAttributeOptions.Any())
+                .Select(sa => new SelectListItem { Text = sa.Name, Value = sa.Id.ToString() })
+                .ToList();
         }
 
         /// <summary>

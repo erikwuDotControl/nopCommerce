@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
 using Nop.Core;
-using Nop.Core.Caching;
 using Nop.Core.Domain.Catalog;
 using Nop.Core.Domain.Discounts;
 using Nop.Core.Domain.Media;
@@ -1720,7 +1719,7 @@ namespace Nop.Web.Areas.Admin.Controllers
         #region Product specification attributes
 
         [HttpPost, ParameterBasedOnFormName("save-continue", "continueEditing")]
-        public virtual IActionResult ProductSpecificationAttributeAdd(AddOrEditSpecificationAttributeModel model, bool continueEditing)
+        public virtual IActionResult ProductSpecificationAttributeAdd(AddSpecificationAttributeModel model, bool continueEditing)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageProducts))
                 return AccessDeniedView();
@@ -1753,6 +1752,7 @@ namespace Nop.Web.Areas.Admin.Controllers
                 model.ValueRaw = model.Value;
 
             var psa = model.ToEntity<ProductSpecificationAttribute>();
+            psa.CustomValue = model.ValueRaw;
             _specificationAttributeService.InsertProductSpecificationAttribute(psa);
 
             if (continueEditing)
@@ -1784,7 +1784,7 @@ namespace Nop.Web.Areas.Admin.Controllers
         }
 
         [HttpPost, ParameterBasedOnFormName("save-continue", "continueEditing")]
-        public virtual IActionResult ProductSpecAttrUpdate(AddOrEditSpecificationAttributeModel model, bool continueEditing)
+        public virtual IActionResult ProductSpecAttrUpdate(AddSpecificationAttributeModel model, bool continueEditing)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageProducts))
                 return AccessDeniedView();
@@ -1854,14 +1854,14 @@ namespace Nop.Web.Areas.Admin.Controllers
                 return RedirectToAction("List");
             }
 
-            var model = new AddOrEditSpecificationAttributeModel();
+            var model = new AddSpecificationAttributeModel();
             if (!specificationId.HasValue)
                 return View(model);
             
             //try to get a product specification attribute with the specified id
             try
             {
-                model = _productModelFactory.PrepareAddOrEditSpecificationAttributeModel(specificationId.Value);
+                model = _productModelFactory.PrepareAddSpecificationAttributeModel(specificationId.Value);
             }
             catch (Exception ex)
             {
@@ -1875,7 +1875,7 @@ namespace Nop.Web.Areas.Admin.Controllers
         }
 
         [HttpPost]
-        public virtual IActionResult ProductSpecAttrDelete(AddOrEditSpecificationAttributeModel model)
+        public virtual IActionResult ProductSpecAttrDelete(AddSpecificationAttributeModel model)
         {
             if (!_permissionService.Authorize(StandardPermissionProvider.ManageProducts))
                 return AccessDeniedView();

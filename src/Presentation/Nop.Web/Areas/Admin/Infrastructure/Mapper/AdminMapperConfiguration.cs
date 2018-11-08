@@ -400,7 +400,6 @@ namespace Nop.Web.Areas.Admin.Infrastructure.Mapper
             //products
             CreateMap<Product, ProductModel>()
                 .ForMember(model => model.AddPictureModel, options => options.Ignore())
-                .ForMember(model => model.AddSpecificationAttributeModel, options => options.Ignore())
                 .ForMember(model => model.AssociatedProductSearchModel, options => options.Ignore())
                 .ForMember(model => model.AssociatedToProductId, options => options.Ignore())
                 .ForMember(model => model.AssociatedToProductName, options => options.Ignore())
@@ -556,17 +555,17 @@ namespace Nop.Web.Areas.Admin.Infrastructure.Mapper
                 .ForMember(model => model.AttributeName, options => options.Ignore())
                 .ForMember(model => model.SpecificationAttributeOptionId, options => options.Ignore());
 
-            CreateMap<ProductSpecificationAttribute, AddOrEditSpecificationAttributeModel>()
-                .ForMember(model => model.SpecificationId, options => options.MapFrom(src => src.Id))
-                .ForMember(model => model.AttributeTypeName, options => options.Ignore())
-                .ForMember(model => model.AttributeId, options => options.Ignore())
-                .ForMember(model => model.AttributeName, options => options.Ignore())
-                .ForMember(model => model.ValueRaw, options => options.Ignore())
-                .ForMember(model => model.Value, options => options.Ignore())
-                .ForMember(model => model.AvailableOptions, options => options.Ignore());
+            CreateMap<ProductSpecificationAttribute, AddSpecificationAttributeModel>()
+                .ForMember(entity => entity.SpecificationId, options => options.Ignore())
+                .ForMember(entity => entity.AttributeTypeName, options => options.Ignore())
+                .ForMember(entity => entity.AttributeId, options => options.Ignore())
+                .ForMember(entity => entity.AttributeName, options => options.Ignore())
+                .ForMember(entity => entity.ValueRaw, options => options.Ignore())
+                .ForMember(entity => entity.Value, options => options.Ignore())
+                .ForMember(entity => entity.AvailableOptions, options => options.Ignore());
 
-            CreateMap<AddOrEditSpecificationAttributeModel, ProductSpecificationAttribute>()
-                .ForMember(model => model.CustomValue, options => options.MapFrom(src => src.ValueRaw))
+            CreateMap<AddSpecificationAttributeModel, ProductSpecificationAttribute>()
+                .ForMember(model => model.CustomValue, options => options.Ignore())
                 .ForMember(model => model.Product, options => options.Ignore())
                 .ForMember(model => model.SpecificationAttributeOption, options => options.Ignore())
                 .ForMember(model => model.AttributeType, options => options.Ignore());

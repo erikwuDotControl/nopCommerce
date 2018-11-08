@@ -8,11 +8,11 @@ namespace Nop.Web.Areas.Admin.Models.Catalog
     /// <summary>
     /// Represents a model for adding or editing a specification attribute
     /// </summary>
-    public partial class AddOrEditSpecificationAttributeModel : BaseNopEntityModel
+    public partial class AddSpecificationAttributeModel : BaseNopEntityModel
     {
         #region Ctor
 
-        public AddOrEditSpecificationAttributeModel()
+        public AddSpecificationAttributeModel()
         {
             AvailableOptions = new List<SelectListItem>();
             ShowOnProductPage = true;

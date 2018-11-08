@@ -133,7 +133,7 @@ namespace Nop.Web.Areas.Admin.Factories
         /// </summary>
         /// <param name="specificationIdValue">Specification id</param>
         /// <returns>Product specification attribute model</returns>
-        AddOrEditSpecificationAttributeModel PrepareAddOrEditSpecificationAttributeModel(int specificationIdValue);
+        AddSpecificationAttributeModel PrepareAddSpecificationAttributeModel(int specificationIdValue);
 
         /// <summary>
         /// Prepare product tag search model

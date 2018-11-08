@@ -1,4 +1,4 @@
-﻿@model AddOrEditSpecificationAttributeModel
+﻿@model AddSpecificationAttributeModel
 
 @using Nop.Core.Caching
 @using Nop.Core.Domain.Catalog
@@ -12,13 +12,8 @@
 @{
     Html.SetActiveMenuItemSystemName("Products");
 
-    var availableAttributes = CacheManager.Get(ModelCacheEventConsumer.SPEC_ATTRIBUTES_MODEL_KEY, () =>
-    {
-        return SpecificationAttributeService.GetSpecificationAttributes()
-            .Where(sa => sa.SpecificationAttributeOptions.Any())
-            .Select(sa => new SelectListItem { Text = sa.Name, Value = sa.Id.ToString() })
-            .ToList();
-    });
+    var availableAttributes = CacheManager.Get(ModelCacheEventConsumer.SPEC_ATTRIBUTES_MODEL_KEY, 
+        () => SpecificationAttributeService.GetSpecificationAttributesWithOptions());
 }
 
 <form asp-controller="Product" asp-action="ProductSpecAttrUpdate" id="spec-form" method="post">
@@ -81,6 +76,7 @@
     <div class="content">
         <div class="form-horizontal">
             <div class="panel-group">
+                @await Component.InvokeAsync("AdminWidget", new { widgetZone = AdminWidgetZones.ProductDetailsSpecificationAttributeDetailsTop, additionalData = Model })
                 <div class="panel panel-default">
                     <div class="panel-body">
                         <div class="form-group">
@@ -117,37 +113,39 @@
                             </div>
                         </div>
                         <script>
-                                $(document).ready(function() {
-                                    var valueContainers = {
-                                        @((int) SpecificationAttributeType.Option): $('#AttributeValueOptionSection'),
-                                        @((int) SpecificationAttributeType.CustomText): $('#AttributeValueCustomTextSection'),
-                                        @((int) SpecificationAttributeType.CustomHtmlText): $('#AttributeValueCustomHtmlTextSection'),
-                                        @((int) SpecificationAttributeType.Hyperlink): $('#AttributeValueCustomTextSection')
-                                    }
+                            $(document).ready(function() {
+                                var valueContainers = {
+                                    @((int) SpecificationAttributeType.Option): $('#AttributeValueOptionSection'),
+                                    @((int) SpecificationAttributeType.CustomText): $(
+                                        '#AttributeValueCustomTextSection'),
+                                    @((int) SpecificationAttributeType.CustomHtmlText): $(
+                                        '#AttributeValueCustomHtmlTextSection'),
+                                    @((int) SpecificationAttributeType.Hyperlink): $('#AttributeValueCustomTextSection')
+                                }
 
-                                    $('#@Html.IdFor(model => model.AttributeTypeId)').on('change',
-                                        function() {
-                                            var attrTypeId = $('#@Html.IdFor(model => model.AttributeTypeId)').val();
+                                $('#@Html.IdFor(model => model.AttributeTypeId)').on('change',
+                                    function() {
+                                        var attrTypeId = $('#@Html.IdFor(model => model.AttributeTypeId)').val();
 
-                                            var values = Object.values(valueContainers);
-                                            for (var i = 0; i < values.length; ++i) {
-                                                values[i].hide();
-                                            }
-                                            valueContainers[attrTypeId].show();
+                                        var values = Object.values(valueContainers);
+                                        for (var i = 0; i < values.length; ++i) {
+                                            values[i].hide();
+                                        }
+                                        valueContainers[attrTypeId].show();
 
-                                            var allowFilteringSection = $('#AllowFilteringSection');
-                                            var allowFilteringField = $('#@Html.IdFor(model => model.AllowFiltering)');
+                                        var allowFilteringSection = $('#AllowFilteringSection');
+                                        var allowFilteringField = $('#@Html.IdFor(model => model.AllowFiltering)');
 
-                                            if (attrTypeId == '@((int) SpecificationAttributeType.Option)') {
-                                                allowFilteringSection.show();
-                                            } else {
-                                                allowFilteringField.prop('checked', false);
-                                                allowFilteringSection.hide();
-                                            }
-                                        });
-                                    $('#@Html.IdFor(model => model.AttributeTypeId)').trigger('change');
+                                        if (attrTypeId == '@((int) SpecificationAttributeType.Option)') {
+                                            allowFilteringSection.show();
+                                        } else {
+                                            allowFilteringField.prop('checked', false);
+                                            allowFilteringSection.hide();
+                                        }
+                                    });
+                                $('#@Html.IdFor(model => model.AttributeTypeId)').trigger('change');
 
-                                })
+                            })
                         </script>
                         @if (Model.SpecificationId == 0)
                         {
@@ -215,7 +213,7 @@
                                 <nop-label asp-for="AllowFiltering" />
                             </div>
                             <div class="col-md-9">
-                                <nop-editor asp-disabled="@(Model.AttributeTypeId != (int)SpecificationAttributeType.Option)"
+                                <nop-editor asp-disabled="@(Model.AttributeTypeId != (int) SpecificationAttributeType.Option)"
                                             asp-for="AllowFiltering" />
                                 <span asp-validation-for="AllowFiltering"></span>
                             </div>
@@ -240,6 +238,8 @@
                         </div>
                     </div>
                 </div>
+                @await Component.InvokeAsync("AdminWidget", new { widgetZone = AdminWidgetZones.ProductDetailsSpecificationAttributeDetailsBottom, additionalData = Model })
+
             </div>
         </div>
     </div>

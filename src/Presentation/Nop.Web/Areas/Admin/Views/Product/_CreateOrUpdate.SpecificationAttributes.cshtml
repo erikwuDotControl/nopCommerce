@@ -1,4 +1,15 @@
 ﻿@model ProductModel
+@using Nop.Core.Caching
+@using Nop.Services.Catalog;
+@using Nop.Web.Areas.Admin.Infrastructure.Cache
+
+@inject IStaticCacheManager CacheManager
+@inject ISpecificationAttributeService SpecificationAttributeService
+
+@{
+    var availableAttributes = CacheManager.Get(ModelCacheEventConsumer.SPEC_ATTRIBUTES_MODEL_KEY,
+        () => SpecificationAttributeService.GetSpecificationAttributesWithOptions());
+}
 
 <div class="panel-group">
     <p>
@@ -8,7 +19,7 @@
     @if (Model.Id > 0)
     {
         /*hide "add spec" table if no attributes are defined*/
-        if (Model.AddSpecificationAttributeModel.AvailableAttributes.Count > 0)
+        if (availableAttributes.Count > 0)
         {
             <div class="panel panel-default">
                 <div class="panel-body">

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Core;
 using Nop.Core.Domain.Catalog;
 
@@ -25,6 +26,12 @@ namespace Nop.Services.Catalog
         /// <param name="pageSize">Page size</param>
         /// <returns>Specification attributes</returns>
         IPagedList<SpecificationAttribute> GetSpecificationAttributes(int pageIndex = 0, int pageSize = int.MaxValue);
+
+        /// <summary>
+        /// Gets specification attributes that have options
+        /// </summary>
+        /// <returns></returns>
+        IList<SelectListItem> GetSpecificationAttributesWithOptions();
 
         /// <summary>
         /// Deletes a specification attribute

@@ -24,7 +24,6 @@ using Nop.Services.Orders;
 using Nop.Services.Seo;
 using Nop.Services.Shipping;
 using Nop.Services.Stores;
-using Nop.Web.Areas.Admin.Infrastructure.Cache;
 using Nop.Web.Areas.Admin.Infrastructure.Mapper.Extensions;
 using Nop.Web.Areas.Admin.Models.Catalog;
 using Nop.Web.Areas.Admin.Models.Orders;
@@ -66,7 +65,6 @@ namespace Nop.Web.Areas.Admin.Factories
         private readonly IShippingService _shippingService;
         private readonly IShoppingCartService _shoppingCartService;
         private readonly ISpecificationAttributeService _specificationAttributeService;
-        private readonly IStaticCacheManager _cacheManager;
         private readonly IStoreMappingSupportedModelFactory _storeMappingSupportedModelFactory;
         private readonly IStoreService _storeService;
         private readonly IUrlRecordService _urlRecordService;
@@ -105,7 +103,6 @@ namespace Nop.Web.Areas.Admin.Factories
             IShippingService shippingService,
             IShoppingCartService shoppingCartService,
             ISpecificationAttributeService specificationAttributeService,
-            IStaticCacheManager cacheManager,
             IStoreMappingSupportedModelFactory storeMappingSupportedModelFactory,
             IStoreService storeService,
             IUrlRecordService urlRecordService,
@@ -141,7 +138,6 @@ namespace Nop.Web.Areas.Admin.Factories
             this._shippingService = shippingService;
             this._shoppingCartService = shoppingCartService;
             this._specificationAttributeService = specificationAttributeService;
-            this._cacheManager = cacheManager;
             this._storeMappingSupportedModelFactory = storeMappingSupportedModelFactory;
             this._storeService = storeService;
             this._urlRecordService = urlRecordService;
@@ -203,38 +199,6 @@ namespace Nop.Web.Areas.Admin.Factories
 
                 models.Add(model);
             }
-        }
-
-        /// <summary>
-        /// Prepare specification attribute model to add to the product
-        /// </summary>
-        /// <param name="model">Specification attribute model to add to the product</param>
-        /// <returns>Specification attribute model to add to the product</returns>
-        protected virtual AddSpecificationAttributeToProductModel PrepareAddSpecificationAttributeToProductModel(
-            AddSpecificationAttributeToProductModel model)
-        {
-            if (model == null)
-                throw new ArgumentNullException(nameof(model));
-
-            model.ShowOnProductPage = true;
-
-            model.AvailableAttributes = _cacheManager.Get(ModelCacheEventConsumer.SPEC_ATTRIBUTES_MODEL_KEY, () =>
-            {
-                return _specificationAttributeService.GetSpecificationAttributes()
-                    .Where(sa => sa.SpecificationAttributeOptions.Any())
-                    .Select(sa => new SelectListItem {Text = sa.Name, Value = sa.Id.ToString()})
-                    .ToList();
-            });
-
-            //options of preselected specification attribute
-            if (model.AvailableAttributes.Any() && int.TryParse(model.AvailableAttributes.FirstOrDefault()?.Value, out var selectedAttributeId))
-            {
-                model.AvailableOptions = _specificationAttributeService
-                    .GetSpecificationAttributeOptionsBySpecificationAttribute(selectedAttributeId)
-                    .Select(option => new SelectListItem { Text = option.Name, Value = option.Id.ToString() }).ToList();
-            }
-
-            return model;
         }
 
         /// <summary>
@@ -798,9 +762,6 @@ namespace Nop.Web.Areas.Admin.Factories
 
                 //prepare copy product model
                 PrepareCopyProductModel(model.CopyProductModel, product);
-
-                //prepare specification attribute model to add to the product
-                PrepareAddSpecificationAttributeToProductModel(model.AddSpecificationAttributeModel);
 
                 //prepare nested search model
                 PrepareRelatedProductSearchModel(model.RelatedProductSearchModel, product);
@@ -1454,7 +1415,7 @@ namespace Nop.Web.Areas.Admin.Factories
         /// </summary>
         /// <param name="specificationIdValue">Specification id</param>
         /// <returns>Product specification attribute model</returns>
-        public virtual AddOrEditSpecificationAttributeModel PrepareAddOrEditSpecificationAttributeModel(int specificationIdValue)
+        public virtual AddSpecificationAttributeModel PrepareAddSpecificationAttributeModel(int specificationIdValue)
         {
             var attribute = _specificationAttributeService.GetProductSpecificationAttributeById(specificationIdValue);
             if (attribute == null)
@@ -1469,7 +1430,8 @@ namespace Nop.Web.Areas.Admin.Factories
                     throw new UnauthorizedAccessException("This is not your product");
             }
 
-            var model = attribute.ToModel<AddOrEditSpecificationAttributeModel>();
+            var model = attribute.ToModel<AddSpecificationAttributeModel>();
+            model.SpecificationId = attribute.Id;
             model.AttributeId = attribute.SpecificationAttributeOption.SpecificationAttribute.Id;
             model.AttributeTypeName = _localizationService.GetLocalizedEnum(attribute.AttributeType);
             model.AttributeName = attribute.SpecificationAttributeOption.SpecificationAttribute.Name;
